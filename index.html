@@ -1,0 +1,820 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PixelConvert - PDF & DOCX to PNG/JPG</title>
+
+<style>
+:root{
+  --bg:#0b1020;
+  --panel:#121a2e;
+  --line:#293653;
+  --text:#edf3ff;
+  --muted:#9aa9c4;
+  --accent:#7c9cff;
+  --mint:#55d6be;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  min-height:100vh;
+  padding:30px 16px;
+  background:radial-gradient(ellipse at top,#1a2850 0,#0b1020 58%);
+  color:var(--text);
+  font-family:Arial,Helvetica,sans-serif;
+}
+.wrap{max-width:920px;margin:auto}
+header{text-align:center;margin:12px 0 28px}
+.logo{
+  display:inline-grid;
+  place-items:center;
+  width:60px;
+  height:60px;
+  border-radius:18px;
+  background:linear-gradient(135deg,#7c9cff,#55d6be);
+  color:#081126;
+  font-size:30px;
+  font-weight:900;
+}
+h1{
+  font-size:clamp(28px,5vw,42px);
+  margin:14px 0 8px;
+  letter-spacing:-1px;
+}
+header p{color:var(--muted);margin:0}
+.panel{
+  background:linear-gradient(180deg,#141e34,#10182a);
+  border:1px solid var(--line);
+  border-radius:22px;
+  padding:22px;
+  box-shadow:0 18px 60px #0005;
+}
+.drop{
+  border:2px dashed #40547c;
+  border-radius:17px;
+  padding:36px 18px;
+  text-align:center;
+  background:#0c1528;
+  transition:.2s;
+}
+.drop.drag{
+  border-color:var(--mint);
+  background:#10283a;
+}
+.symbol{font-size:38px}
+.drop h2{font-size:20px;margin:10px 0}
+.drop p{
+  color:var(--muted);
+  font-size:13px;
+  margin:0 0 17px;
+}
+button,.filebtn{
+  border:0;
+  border-radius:11px;
+  padding:12px 18px;
+  background:linear-gradient(135deg,#829fff,#6484ed);
+  color:#081126;
+  font-weight:800;
+  cursor:pointer;
+  font-size:14px;
+  display:inline-block;
+}
+button:disabled{opacity:.45;cursor:not-allowed}
+.filebtn input{display:none}
+.settings{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:13px;
+  margin-top:18px;
+}
+.field{
+  background:#0d1629;
+  border:1px solid var(--line);
+  border-radius:13px;
+  padding:13px;
+}
+.field label{
+  display:block;
+  color:var(--muted);
+  font-size:12px;
+  margin-bottom:8px;
+}
+.field select{
+  width:100%;
+  background:#17233b;
+  border:1px solid #344666;
+  border-radius:8px;
+  padding:10px;
+  color:var(--text);
+  outline:none;
+}
+.fileinfo{
+  display:none;
+  margin-top:16px;
+  padding:13px 15px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#0d1629;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.fileinfo.show{display:flex}
+.filename{
+  font-weight:700;
+  overflow-wrap:anywhere;
+}
+.secondary{
+  background:#253451;
+  color:var(--text);
+  border:1px solid #3a4c6d;
+}
+.actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:18px;
+  justify-content:center;
+}
+.status{
+  margin-top:17px;
+  color:var(--muted);
+  font-size:13px;
+  min-height:20px;
+}
+.progress{
+  height:7px;
+  border-radius:9px;
+  background:#26344e;
+  overflow:hidden;
+  margin-top:8px;
+  display:none;
+}
+.progress.show{display:block}
+.bar{
+  height:100%;
+  width:0;
+  background:linear-gradient(90deg,#7c9cff,#55d6be);
+  transition:width .2s;
+}
+.results{display:none;margin-top:22px}
+.results.show{display:block}
+.results h3{margin:0 0 12px;font-size:17px}
+.result-list{display:grid;gap:9px}
+.result{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:11px 13px;
+  background:#0d1629;
+  border:1px solid var(--line);
+  border-radius:11px;
+}
+.result span{
+  font-size:13px;
+  overflow-wrap:anywhere;
+}
+.result a{
+  color:#a9bcff;
+  font-weight:700;
+  text-decoration:none;
+  white-space:nowrap;
+  font-size:13px;
+}
+footer{
+  text-align:center;
+  color:#71819e;
+  font-size:12px;
+  margin-top:22px;
+}
+@media(max-width:650px){
+  .settings{grid-template-columns:1fr}
+  .panel{padding:14px}
+  .drop{padding:28px 12px}
+  .fileinfo{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+  .wrap{padding-bottom:30px}
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+<header>
+  <div class="logo">P</div>
+  <h1>PixelConvert</h1>
+  <p>Convert PDF and Word documents into high-quality PNG or JPG images.</p>
+</header>
+
+<main class="panel">
+
+  <div class="drop" id="drop">
+    <div class="symbol">📄 → 🖼️</div>
+    <h2>Drop Your File Here</h2>
+    <p>Choose a PDF or DOCX file from your device.</p>
+
+    <label class="filebtn">
+      Choose File
+      <input
+        id="file"
+        type="file"
+        accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      >
+    </label>
+  </div>
+
+  <div class="fileinfo" id="fileinfo">
+    <div class="filename" id="filename"></div>
+    <button class="secondary" id="remove" type="button">
+      Remove File
+    </button>
+  </div>
+
+  <div class="settings">
+
+    <div class="field">
+      <label for="format">Output Format</label>
+      <select id="format">
+        <option value="png">PNG — Lossless</option>
+        <option value="jpeg">JPG</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="quality">Image Quality</label>
+      <select id="quality">
+        <option value="normal">Normal</option>
+        <option value="medium">Medium</option>
+        <option value="high" selected>High</option>
+      </select>
+    </div>
+
+  </div>
+
+  <div class="actions">
+    <button id="convert" type="button" disabled>
+      Convert to Images
+    </button>
+  </div>
+
+  <div class="status" id="status" role="status">
+    Select a PDF or DOCX file to get started.
+  </div>
+
+  <div class="progress" id="progress">
+    <div class="bar" id="bar"></div>
+  </div>
+
+  <section class="results" id="results">
+    <h3>Converted Images</h3>
+    <div class="result-list" id="resultList"></div>
+  </section>
+
+</main>
+
+<footer>
+  PixelConvert · Browser-based · PDF / DOCX to PNG / JPG
+</footer>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+(() => {
+
+  const $ = id => document.getElementById(id);
+
+  let selectedFile = null;
+  let outputs = [];
+
+  if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+
+  function setStatus(message, percent = null) {
+
+    $('status').textContent = message;
+
+    if (percent === null) {
+      $('progress').classList.remove('show');
+    } else {
+      $('progress').classList.add('show');
+      $('bar').style.width = percent + '%';
+    }
+  }
+
+  function clearOutputs() {
+
+    outputs.forEach(item => URL.revokeObjectURL(item.url));
+
+    outputs = [];
+
+    $('results').classList.remove('show');
+    $('resultList').innerHTML = '';
+  }
+
+  function chooseFile(file) {
+
+    if (!file) return;
+
+    const extension = file.name.split('.').pop().toLowerCase();
+
+    if (!['pdf', 'docx'].includes(extension)) {
+      setStatus('Unsupported file. Please select a PDF or DOCX file.');
+      return;
+    }
+
+    clearOutputs();
+
+    selectedFile = file;
+
+    $('filename').textContent = file.name;
+    $('fileinfo').classList.add('show');
+    $('convert').disabled = false;
+
+    setStatus('File selected. Click Convert to Images.');
+  }
+
+  $('file').addEventListener('change', event => {
+    chooseFile(event.target.files[0]);
+  });
+
+  $('remove').addEventListener('click', () => {
+
+    selectedFile = null;
+    $('file').value = '';
+
+    $('fileinfo').classList.remove('show');
+    $('convert').disabled = true;
+
+    clearOutputs();
+
+    setStatus('Select a PDF or DOCX file to get started.');
+  });
+
+  const drop = $('drop');
+
+  ['dragenter', 'dragover'].forEach(type => {
+
+    drop.addEventListener(type, event => {
+
+      event.preventDefault();
+      drop.classList.add('drag');
+
+    });
+
+  });
+
+  ['dragleave', 'drop'].forEach(type => {
+
+    drop.addEventListener(type, event => {
+
+      event.preventDefault();
+      drop.classList.remove('drag');
+
+    });
+
+  });
+
+  drop.addEventListener('drop', event => {
+    chooseFile(event.dataTransfer.files[0]);
+  });
+
+
+  // QUALITY SETTINGS
+  // Normal = 4x
+  // Medium = 6x
+  // High = 8x
+  // JPG quality = 100% for every option
+
+  function getQualitySettings() {
+
+    const preset = $('quality').value;
+
+    if (preset === 'normal') {
+      return { scale: 4, jpg: 1.00 };
+    }
+
+    if (preset === 'medium') {
+      return { scale: 6, jpg: 1.00 };
+    }
+
+    return { scale: 8, jpg: 1.00 };
+  }
+
+  function outputMime() {
+
+    return $('format').value === 'jpeg'
+      ? 'image/jpeg'
+      : 'image/png';
+
+  }
+
+  function outputExtension() {
+
+    return $('format').value === 'jpeg'
+      ? 'jpg'
+      : 'png';
+
+  }
+
+  function fileBaseName() {
+
+    return selectedFile.name
+      .replace(/\.[^.]+$/, '')
+      .replace(/[^\w-]+/g, '_') || 'converted';
+
+  }
+
+  function canvasToBlob(canvas) {
+
+    return new Promise((resolve, reject) => {
+
+      canvas.toBlob(
+
+        blob => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error('Could not create image.'));
+          }
+        },
+
+        outputMime(),
+
+        1.00
+
+      );
+
+    });
+
+  }
+
+  function saveOutput(blob, name) {
+
+    outputs.push({
+      blob,
+      name,
+      url: URL.createObjectURL(blob)
+    });
+
+  }
+
+  function downloadImage(item) {
+
+    const link = document.createElement('a');
+
+    link.href = item.url;
+    link.download = item.name;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+  }
+
+
+  // PDF CONVERSION
+
+  async function convertPDF(file, scale) {
+
+    const data = await file.arrayBuffer();
+
+    const pdf = await pdfjsLib.getDocument({ data }).promise;
+
+    for (
+      let pageNumber = 1;
+      pageNumber <= pdf.numPages;
+      pageNumber++
+    ) {
+
+      setStatus(
+        `Rendering PDF page ${pageNumber} of ${pdf.numPages}...`,
+        Math.round((pageNumber - 1) / pdf.numPages * 100)
+      );
+
+      const page = await pdf.getPage(pageNumber);
+
+      const viewport = page.getViewport({ scale });
+
+      const canvas = document.createElement('canvas');
+
+      const context = canvas.getContext('2d', {
+        alpha: false
+      });
+
+      canvas.width = Math.ceil(viewport.width);
+      canvas.height = Math.ceil(viewport.height);
+
+      context.fillStyle = '#ffffff';
+
+      context.fillRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+      await page.render({
+        canvasContext: context,
+        viewport
+      }).promise;
+
+      const blob = await canvasToBlob(canvas);
+
+      saveOutput(
+        blob,
+        `${fileBaseName()}_page_${String(pageNumber).padStart(3, '0')}.${outputExtension()}`
+      );
+
+      canvas.width = 1;
+      canvas.height = 1;
+
+    }
+
+  }
+
+
+  // DOCX CONVERSION
+
+  async function convertDOCX(file, scale) {
+
+    const data = await file.arrayBuffer();
+
+    const result = await mammoth.convertToHtml({
+      arrayBuffer: data
+    });
+
+    const host = document.createElement('div');
+
+    host.style.cssText =
+      'position:fixed;left:-12000px;top:0;width:794px;background:#fff;color:#111;';
+
+    const style = document.createElement('style');
+
+    style.textContent = `
+
+      .docx-page {
+        width:794px;
+        min-height:1123px;
+        box-sizing:border-box;
+        padding:76px 72px;
+        background:#fff;
+        color:#111;
+        font-family:Arial,sans-serif;
+        font-size:16px;
+        line-height:1.5;
+        overflow:hidden;
+      }
+
+      .docx-page h1 {
+        font-size:28px;
+        color:#111;
+        margin:0 0 18px;
+      }
+
+      .docx-page h2 {
+        font-size:23px;
+        color:#111;
+        margin:18px 0 12px;
+      }
+
+      .docx-page h3 {
+        font-size:19px;
+        color:#111;
+        margin:16px 0 10px;
+      }
+
+      .docx-page p {
+        margin:0 0 12px;
+      }
+
+      .docx-page table {
+        border-collapse:collapse;
+        width:100%;
+        margin:12px 0;
+      }
+
+      .docx-page td,
+      .docx-page th {
+        border:1px solid #777;
+        padding:6px;
+        vertical-align:top;
+      }
+
+      .docx-page img {
+        max-width:100%;
+        height:auto;
+      }
+
+      .docx-page ul,
+      .docx-page ol {
+        padding-left:28px;
+      }
+
+    `;
+
+    document.head.appendChild(style);
+
+    const content = document.createElement('div');
+
+    content.innerHTML = result.value;
+
+    const page = document.createElement('div');
+
+    page.className = 'docx-page';
+
+    host.appendChild(page);
+    document.body.appendChild(host);
+
+    const pages = [];
+
+    for (const node of [...content.childNodes]) {
+
+      page.appendChild(node.cloneNode(true));
+
+      if (
+        page.scrollHeight > 1123 &&
+        page.childNodes.length > 1
+      ) {
+
+        const last = page.lastChild;
+
+        page.removeChild(last);
+
+        pages.push(page.cloneNode(true));
+
+        page.innerHTML = '';
+
+        page.appendChild(last);
+
+      }
+
+    }
+
+    if (page.childNodes.length) {
+      pages.push(page.cloneNode(true));
+    }
+
+    if (!pages.length) {
+      pages.push(page.cloneNode(true));
+    }
+
+    for (let index = 0; index < pages.length; index++) {
+
+      setStatus(
+        `Rendering DOCX page ${index + 1} of ${pages.length}...`,
+        Math.round(index / pages.length * 100)
+      );
+
+      const canvas = await html2canvas(pages[index], {
+
+        scale: scale,
+
+        backgroundColor: '#ffffff',
+
+        useCORS: true,
+
+        logging: false
+
+      });
+
+      const blob = await canvasToBlob(canvas);
+
+      saveOutput(
+        blob,
+        `${fileBaseName()}_page_${String(index + 1).padStart(3, '0')}.${outputExtension()}`
+      );
+
+      canvas.width = 1;
+      canvas.height = 1;
+
+    }
+
+    host.remove();
+    style.remove();
+
+  }
+
+
+  // SHOW RESULTS
+
+  function showResults() {
+
+    $('resultList').innerHTML = '';
+
+    outputs.forEach(item => {
+
+      const row = document.createElement('div');
+
+      row.className = 'result';
+
+      const name = document.createElement('span');
+
+      name.textContent = item.name;
+
+      const link = document.createElement('a');
+
+      link.href = item.url;
+      link.download = item.name;
+      link.textContent = 'Download';
+
+      row.append(name, link);
+
+      $('resultList').appendChild(row);
+
+    });
+
+    $('results').classList.add('show');
+
+  }
+
+
+  // CONVERT BUTTON
+
+  $('convert').addEventListener('click', async () => {
+
+    if (!selectedFile) return;
+
+    clearOutputs();
+
+    $('convert').disabled = true;
+
+    const scale = getQualitySettings().scale;
+
+    try {
+
+      const extension = selectedFile.name
+        .split('.')
+        .pop()
+        .toLowerCase();
+
+      if (extension === 'pdf') {
+
+        await convertPDF(selectedFile, scale);
+
+      } else {
+
+        await convertDOCX(selectedFile, scale);
+
+      }
+
+      showResults();
+
+      setStatus(
+        `Done! ${outputs.length} image(s) created. Downloads are starting...`,
+        100
+      );
+
+      outputs.forEach((item, index) => {
+
+        setTimeout(() => {
+          downloadImage(item);
+        }, index * 700);
+
+      });
+
+    } catch (error) {
+
+      console.error(error);
+
+      setStatus(
+        'Conversion failed: ' +
+        (error.message || 'Unable to read this file.')
+      );
+
+    } finally {
+
+      $('convert').disabled = !selectedFile;
+
+    }
+
+  });
+
+
+  // CLEAN UP
+
+  window.addEventListener('beforeunload', () => {
+
+    outputs.forEach(item => {
+      URL.revokeObjectURL(item.url);
+    });
+
+  });
+
+})();
+</script>
+
+</body>
+</html>
